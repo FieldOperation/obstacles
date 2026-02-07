@@ -1,0 +1,20 @@
+{
+  "name": "obstacles-case-management",
+  "version": "1.0.0",
+  "description": "Cross-platform case management system for Obstacles and Damages",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "mobile"
+  ],
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:mobile": "cd mobile && npm start",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../mobile && npm install"
+  },
+  "keywords": ["case-management", "obstacles", "damages", "road-maintenance"],
+  "author": "",
+  "license": "MIT"
+}

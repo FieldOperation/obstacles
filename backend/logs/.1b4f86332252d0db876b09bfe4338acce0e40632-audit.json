@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\user\\Desktop\\obstacles\\backend\\logs\\.1b4f86332252d0db876b09bfe4338acce0e40632-audit.json",
+    "files": [
+        {
+            "date": 1770501117509,
+            "name": "C:\\Users\\user\\Desktop\\obstacles\\backend\\logs\\rejections-2026-02-08.log",
+            "hash": "b1e7fc60a46ddee36e5128a8137cbc070ed592f4701d198f616dc2037a19eea1"
+        }
+    ],
+    "hashType": "sha256"
+}

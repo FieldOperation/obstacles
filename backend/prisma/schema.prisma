@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  WORKER
+  OTHERS
+}
+
+enum CaseStatus {
+  OPEN
+  CLOSED
+}
+
+enum CaseType {
+  OBSTACLE
+  DAMAGE
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  name          String
+  role          Role           @default(OTHERS)
+  zoneId        String?
+  zone          Zone?          @relation(fields: [zoneId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdCases  Case[]         @relation("CaseCreator")
+  closedCases   Case[]         @relation("CaseCloser")
+  notifications Notification[]
+  updatedSettings SystemSettings[] @relation("SettingsUpdater")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Zone {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  roads     Road[]
+  users     User[]
+  cases     Case[]
+}
+
+model Road {
+  id        String   @id @default(uuid())
+  name      String
+  zoneId    String
+  zone      Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cases     Case[]
+
+  @@unique([name, zoneId])
+  @@index([zoneId])
+}
+
+model Developer {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cases     Case[]
+}
+
+model Case {
+  id            String     @id @default(uuid())
+  type          CaseType
+  status        CaseStatus @default(OPEN)
+  zoneId        String
+  zone          Zone       @relation(fields: [zoneId], references: [id])
+  roadId        String
+  road          Road       @relation(fields: [roadId], references: [id])
+  developerId   String?
+  developer     Developer? @relation(fields: [developerId], references: [id])
+  description   String
+  plannedWork   String? // Only for OBSTACLE type
+  latitude      Float
+  longitude     Float
+  createdById   String
+  createdBy     User       @relation("CaseCreator", fields: [createdById], references: [id])
+  closedById    String?
+  closedBy      User?      @relation("CaseCloser", fields: [closedById], references: [id])
+  closedAt      DateTime?
+  closureNotes  String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  photos        Photo[]
+  closurePhotos Photo[]    @relation("ClosurePhotos")
+
+  @@index([type])
+  @@index([status])
+  @@index([zoneId])
+  @@index([roadId])
+  @@index([createdById])
+  @@index([createdAt])
+}
+
+model Photo {
+  id            String   @id @default(uuid())
+  caseId        String
+  case          Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  closureCaseId String?
+  closureCase   Case?    @relation("ClosurePhotos", fields: [closureCaseId], references: [id], onDelete: Cascade)
+  filename      String
+  originalName  String
+  mimeType      String
+  size          Int
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime @default(now())
+
+  @@index([caseId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  caseId    String?
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+}
+
+model SystemSettings {
+  id                String   @id @default(uuid())
+  contractorLogo    String?  // Filename of contractor logo
+  ownerLogo         String?  // Filename of owner logo
+  updatedAt         DateTime @updatedAt
+  updatedBy         String?
+  updater           User?    @relation("SettingsUpdater", fields: [updatedBy], references: [id])
+}

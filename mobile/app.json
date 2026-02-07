@@ -1,0 +1,50 @@
+{
+  "expo": {
+    "name": "Obstacles CMS",
+    "slug": "obstacles-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0ea5e9"
+    },
+    "sdkVersion": "52.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.obstacles.cms"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0ea5e9"
+      },
+      "package": "com.obstacles.cms",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Obstacles CMS to use your location."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Obstacles CMS to access your camera."
+        }
+      ]
+    ]
+  }
+}

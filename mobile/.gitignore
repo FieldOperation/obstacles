@@ -1,0 +1,28 @@
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# OS
+.DS_Store
+*.pem
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+*.log
+*.tmp
+
+# Assets (placeholder files - replace with real assets later)
+# assets/icon.png
+# assets/splash.png
+# assets/adaptive-icon.png
+# assets/favicon.png

@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\user\\Desktop\\obstacles\\backend\\logs\\.34475d43ff9932d4c93097829807285510647541-audit.json",
+    "files": [
+        {
+            "date": 1770501117505,
+            "name": "C:\\Users\\user\\Desktop\\obstacles\\backend\\logs\\exceptions-2026-02-08.log",
+            "hash": "9e6af6e203b76e42bd05a59a957c7bdccdd54f03f44cd7c522f348d88af67c2f"
+        }
+    ],
+    "hashType": "sha256"
+}

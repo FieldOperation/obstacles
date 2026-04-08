@@ -120,17 +120,15 @@
   "login": {
     "title": "نظام إدارة العوائق",
     "subtitle": "تسجيل الدخول إلى حسابك",
-    "emailAddress": "عنوان البريد الإلكتروني",
-    "emailPlaceholder": "admin@example.com",
+    "username": "اسم المستخدم",
+    "usernamePlaceholder": "أدخل اسم المستخدم",
     "passwordPlaceholder": "••••••••",
     "signIn": "تسجيل الدخول",
     "signingIn": "جاري تسجيل الدخول...",
     "loginSuccessful": "تم تسجيل الدخول بنجاح!",
     "loginFailed": "فشل تسجيل الدخول",
-    "demoCredentials": "بيانات تجريبية",
-    "admin": "مدير",
-    "worker": "عامل",
-    "others": "آخرون"
+    "manualLoginNote": "تسجيل دخول يدوي",
+    "manualLoginHint": "استخدم اسم المستخدم وكلمة المرور اللذين أنشأهما المدير. لا حاجة للبريد الإلكتروني."
   },
   "users": {
     "title": "إدارة المستخدمين",

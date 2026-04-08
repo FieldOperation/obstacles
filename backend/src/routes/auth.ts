@@ -1,6 +1,6 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { body, validationResult } from 'express-validator';
 import { PrismaClient } from '@prisma/client';
 
@@ -16,7 +16,7 @@ router.post(
     body('name').trim().notEmpty(),
     body('role').optional().isIn(['ADMIN', 'WORKER', 'OTHERS'])
   ],
-  async (req, res) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -56,10 +56,15 @@ router.post(
         }
       });
 
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
+        return res.status(500).json({ error: 'Server configuration error' });
+      }
+      
       const token = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET!,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+        jwtSecret,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as SignOptions
       );
 
       res.status(201).json({
@@ -80,7 +85,7 @@ router.post(
     body('email').isEmail().normalizeEmail(),
     body('password').notEmpty()
   ],
-  async (req, res) => {
+  async (req: express.Request, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -116,15 +121,16 @@ router.post(
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      if (!process.env.JWT_SECRET) {
+      const jwtSecret = process.env.JWT_SECRET;
+      if (!jwtSecret) {
         console.error('JWT_SECRET is not configured');
         return res.status(500).json({ error: 'Server configuration error' });
       }
 
       const token = jwt.sign(
         { userId: user.id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+        jwtSecret,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '7d' } as SignOptions
       );
 
       res.json({
@@ -151,7 +157,7 @@ router.post(
 );
 
 // Get current user
-router.get('/me', async (req, res) => {
+router.get('/me', async (req: express.Request, res: express.Response) => {
   try {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -160,7 +166,11 @@ router.get('/me', async (req, res) => {
       return res.status(401).json({ error: 'Access token required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    const decoded = jwt.verify(token, jwtSecret) as any;
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },

@@ -4,6 +4,11 @@
 dist/
 web-build/
 
+# Environment (do not commit secrets)
+.env
+.env.local
+.env.production
+
 # Node
 node_modules/
 npm-debug.log

@@ -90,7 +90,7 @@ router.post(
     body('role').isIn(['ADMIN', 'WORKER', 'OTHERS']),
     body('zoneId').optional().isUUID()
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -157,7 +157,7 @@ router.put(
         throw new Error('zoneId must be a valid UUID');
       })
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

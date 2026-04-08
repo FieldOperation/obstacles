@@ -40,5 +40,5 @@ export const getSocketUrl = (): string => {
     return apiUrl.replace('/api', '');
   }
   // Default to same origin
-  return window.location.origin.replace(':3000', ':3001');
+  return window.location.origin.replace(':4000', ':3001');
 };

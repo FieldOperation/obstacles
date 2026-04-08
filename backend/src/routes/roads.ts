@@ -91,7 +91,7 @@ router.post(
     body('name').trim().notEmpty(),
     body('zoneId').isUUID()
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -149,7 +149,7 @@ router.put(
     body('name').optional().trim().notEmpty(),
     body('zoneId').optional().isUUID()
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

@@ -12,9 +12,10 @@ import Users from './pages/Users';
 import Zones from './pages/Zones';
 import Roads from './pages/Roads';
 import Developers from './pages/Developers';
-import Settings from './pages/Settings';
 import Layout from './components/Layout';
-import { SocketProvider } from './contexts/SocketContext';
+import Settings from './pages/Settings';
+import { RealtimeProvider } from './contexts/SocketContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,8 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+      {/* Redirect /dashboard to / */}
+      <Route path="/dashboard" element={<Navigate to="/" replace />} />
       <Route
         path="/"
         element={
@@ -57,7 +60,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
+        <Route index element={user?.role === 'WORKER' ? <Navigate to="/cases" replace /> : <Dashboard />} />
         <Route path="cases" element={<Cases />} />
         <Route path="cases/new" element={<CreateCase />} />
         <Route path="cases/:id" element={<CaseDetail />} />
@@ -71,6 +74,8 @@ function AppRoutes() {
           </>
         )}
       </Route>
+      {/* Catch-all: Workers go to cases, others to dashboard */}
+      <Route path="*" element={<Navigate to={user?.role === 'WORKER' ? '/cases' : '/'} replace />} />
     </Routes>
   );
 }
@@ -78,9 +83,10 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <AuthProvider>
-          <SocketProvider>
+      <ThemeProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <RealtimeProvider>
             <BrowserRouter
               future={{
                 v7_startTransition: true,
@@ -88,11 +94,25 @@ function App() {
               }}
             >
               <AppRoutes />
-              <Toaster position="top-right" />
+              <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  borderRadius: '12px',
+                  padding: '14px 18px',
+                  background: 'var(--color-surface)',
+                  color: 'var(--color-text)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-soft)',
+                },
+              }}
+            />
             </BrowserRouter>
-          </SocketProvider>
+          </RealtimeProvider>
         </AuthProvider>
       </LanguageProvider>
+    </ThemeProvider>
     </QueryClientProvider>
   );
 }

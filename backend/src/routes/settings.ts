@@ -81,7 +81,7 @@ router.post(
   '/contractor-logo',
   requireAdmin,
   upload.single('logo'),
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -132,7 +132,7 @@ router.post(
   '/owner-logo',
   requireAdmin,
   upload.single('logo'),
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });

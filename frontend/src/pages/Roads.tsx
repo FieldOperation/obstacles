@@ -1,33 +1,26 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { api } from '../services/api';
+import { roadsService, zonesService } from '../services/supabaseService';
 import toast from 'react-hot-toast';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Navigation2 } from 'lucide-react';
+import { Card } from '../components/ui/Card';
+import { Modal } from '../components/ui/Modal';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { EmptyState } from '../components/ui/EmptyState';
+import { SkeletonTable } from '../components/ui/Skeleton';
 
 export default function Roads() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingRoad, setEditingRoad] = useState<any>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    zoneId: ''
-  });
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [formData, setFormData] = useState({ name: '', zoneId: '' });
 
-  const { data, isLoading } = useQuery('roads', async () => {
-    const response = await api.get('/roads');
-    return response.data.roads;
-  });
-
-  const { data: zones } = useQuery('zones', async () => {
-    const response = await api.get('/zones');
-    return response.data.zones;
-  });
+  const { data, isLoading } = useQuery('roads', () => roadsService.getAll().then((r) => r.roads));
+  const { data: zones } = useQuery('zones', () => zonesService.getAll().then((r) => r.zones));
 
   const createMutation = useMutation(
-    async (data: any) => {
-      const response = await api.post('/roads', data);
-      return response.data;
-    },
+    (data: { name: string; zoneId: string }) => roadsService.create({ name: data.name, zoneId: data.zoneId }),
     {
       onSuccess: () => {
         toast.success('Road created successfully!');
@@ -35,17 +28,11 @@ export default function Roads() {
         setShowModal(false);
         resetForm();
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Failed to create road');
-      }
+      onError: (err: any) => { toast.error(err.message || 'Failed to create road'); },
     }
   );
-
   const updateMutation = useMutation(
-    async ({ id, data }: { id: string; data: any }) => {
-      const response = await api.put(`/roads/${id}`, data);
-      return response.data;
-    },
+    ({ id, data }: { id: string; data: { name: string; zoneId?: string } }) => roadsService.update(id, { name: data.name, zoneId: data.zoneId }),
     {
       onSuccess: () => {
         toast.success('Road updated successfully!');
@@ -54,111 +41,83 @@ export default function Roads() {
         setEditingRoad(null);
         resetForm();
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Failed to update road');
-      }
+      onError: (err: any) => { toast.error(err.message || 'Failed to update road'); },
     }
   );
-
   const deleteMutation = useMutation(
-    async (id: string) => {
-      await api.delete(`/roads/${id}`);
-    },
+    (id: string) => roadsService.delete(id),
     {
       onSuccess: () => {
         toast.success('Road deleted successfully!');
         queryClient.invalidateQueries('roads');
+        setDeleteTarget(null);
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Failed to delete road');
-      }
+      onError: (err: any) => { toast.error(err.message || 'Failed to delete road'); },
     }
   );
 
-  const resetForm = () => {
-    setFormData({ name: '', zoneId: '' });
-  };
-
+  const resetForm = () => setFormData({ name: '', zoneId: '' });
   const handleEdit = (road: any) => {
     setEditingRoad(road);
-    setFormData({
-      name: road.name,
-      zoneId: road.zoneId
-    });
+    setFormData({ name: road.name, zoneId: road.zone_id || road.zoneId });
     setShowModal(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingRoad) {
-      updateMutation.mutate({ id: editingRoad.id, data: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
+    if (editingRoad) updateMutation.mutate({ id: editingRoad.id, data: formData });
+    else createMutation.mutate(formData);
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Roads</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Manage roads by zone</p>
+        </div>
+        <SkeletonTable rows={8} />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Roads</h1>
-          <p className="text-gray-600 mt-1">Manage roads by zone</p>
+          <h1 className="page-title">Roads</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Manage roads by zone</p>
         </div>
-        <button
-          onClick={() => {
-            setEditingRoad(null);
-            resetForm();
-            setShowModal(true);
-          }}
-          className="btn btn-primary flex items-center"
-        >
+        <button onClick={() => { setEditingRoad(null); resetForm(); setShowModal(true); }} className="btn btn-primary shrink-0">
           <Plus size={20} className="mr-2" />
           New Road
         </button>
       </div>
 
-      <div className="card">
-        <div className="overflow-x-auto">
-          <table className="w-full">
+      {data?.length ? (
+        <div className="table-wrapper">
+          <table className="table">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Zone</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Cases</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>
+              <tr>
+                <th>Name</th>
+                <th>Zone</th>
+                <th>Cases</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {data?.map((road: any) => (
-                <tr key={road.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium">{road.name}</td>
-                  <td className="py-3 px-4">{road.zone?.name}</td>
-                  <td className="py-3 px-4">{road._count?.cases || 0}</td>
-                  <td className="py-3 px-4">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(road)}
-                        className="text-primary-600 hover:text-primary-700"
-                      >
-                        <Edit size={16} />
+              {data.map((road: any) => (
+                <tr key={road.id}>
+                  <td className="font-medium text-gray-900 dark:text-gray-100">{road.name}</td>
+                  <td className="text-gray-600 dark:text-gray-400">{(road.zones as any)?.name || road.zone?.name}</td>
+                  <td className="text-gray-600 dark:text-gray-400">{road._count?.cases || 0}</td>
+                  <td className="text-right">
+                    <div className="flex gap-2 justify-end">
+                      <button type="button" onClick={() => handleEdit(road)} className="btn btn-ghost p-2 rounded-lg text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20" aria-label="Edit">
+                        <Edit size={18} />
                       </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Are you sure you want to delete this road?')) {
-                            deleteMutation.mutate(road.id);
-                          }
-                        }}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 size={16} />
+                      <button type="button" onClick={() => setDeleteTarget({ id: road.id, name: road.name })} className="btn btn-ghost p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" aria-label="Delete">
+                        <Trash2 size={18} />
                       </button>
                     </div>
                   </td>
@@ -167,64 +126,48 @@ export default function Roads() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h2 className="text-2xl font-bold">
-              {editingRoad ? 'Edit Road' : 'Create Road'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Zone *</label>
-                <select
-                  value={formData.zoneId}
-                  onChange={(e) => setFormData({ ...formData, zoneId: e.target.value })}
-                  required
-                  className="input"
-                >
-                  <option value="">Select zone</option>
-                  {zones?.map((zone: any) => (
-                    <option key={zone.id} value={zone.id}>{zone.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="label">Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  className="input"
-                />
-              </div>
-              <div className="flex gap-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={createMutation.isLoading || updateMutation.isLoading}
-                >
-                  {editingRoad ? 'Update' : 'Create'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setEditingRoad(null);
-                    resetForm();
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+      ) : (
+        <Card>
+          <EmptyState icon={Navigation2} title="No roads yet" description="Create a road to get started." />
+        </Card>
       )}
+
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditingRoad(null); resetForm(); }} title={editingRoad ? 'Edit Road' : 'Create Road'} size="md">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Zone *</label>
+            <select value={formData.zoneId} onChange={(e) => setFormData({ ...formData, zoneId: e.target.value })} required className="input">
+              <option value="">Select zone</option>
+              {zones?.map((zone: any) => (
+                <option key={zone.id} value={zone.id}>{zone.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Name *</label>
+            <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required className="input" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="submit" className="btn btn-primary flex-1" disabled={createMutation.isLoading || updateMutation.isLoading}>
+              {editingRoad ? 'Update' : 'Create'}
+            </button>
+            <button type="button" onClick={() => { setShowModal(false); setEditingRoad(null); resetForm(); }} className="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        title="Delete road"
+        message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.name}"?` : ''}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteMutation.isLoading}
+      />
     </div>
   );
 }

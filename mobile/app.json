@@ -9,42 +9,38 @@
       "resizeMode": "contain",
       "backgroundColor": "#0ea5e9"
     },
-    "sdkVersion": "52.0.0",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "sdkVersion": "54.0.0",
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.obstacles.cms"
+      "bundleIdentifier": "com.obstacles.cms",
+      "buildNumber": "1"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0ea5e9"
       },
       "package": "com.obstacles.cms",
+      "versionCode": 1,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
       ]
     },
-    "web": {
-    },
+    "web": {},
     "plugins": [
-      [
-        "expo-location",
-        {
-          "locationAlwaysAndWhenInUsePermission": "Allow Obstacles CMS to use your location."
-        }
-      ],
-      [
-        "expo-camera",
-        {
-          "cameraPermission": "Allow Obstacles CMS to access your camera."
-        }
-      ]
+      ["expo-location", { "locationAlwaysAndWhenInUsePermission": "Allow Obstacles CMS to use your location." }],
+      ["expo-camera", { "cameraPermission": "Allow Obstacles CMS to access your camera." }],
+      ["expo-image-picker", {
+        "photosPermission": "Allow Obstacles CMS to access your photos for case reports.",
+        "cameraPermission": "Allow Obstacles CMS to access your camera."
+      }],
+      ["expo-notifications", { "icon": "./assets/icon.png", "color": "#0ea5e9" }]
     ]
   }
 }

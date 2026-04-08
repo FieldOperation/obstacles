@@ -120,17 +120,15 @@
   "login": {
     "title": "Obstacles CMS",
     "subtitle": "Sign in to your account",
-    "emailAddress": "Email Address",
-    "emailPlaceholder": "admin@example.com",
+    "username": "Username",
+    "usernamePlaceholder": "Enter your username",
     "passwordPlaceholder": "••••••••",
     "signIn": "Sign in",
     "signingIn": "Signing in...",
     "loginSuccessful": "Login successful!",
     "loginFailed": "Login failed",
-    "demoCredentials": "Demo Credentials",
-    "admin": "Admin",
-    "worker": "Worker",
-    "others": "Others"
+    "manualLoginNote": "Manual login",
+    "manualLoginHint": "Use the username and password created by an admin. No email required."
   },
   "users": {
     "title": "User Management",

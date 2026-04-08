@@ -1,85 +1,111 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import { getSocketUrl } from '../config/api';
 import toast from 'react-hot-toast';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
-interface SocketContextType {
-  socket: Socket | null;
+interface RealtimeContextType {
   connected: boolean;
 }
 
-const SocketContext = createContext<SocketContextType | undefined>(undefined);
+const RealtimeContext = createContext<RealtimeContextType | undefined>(undefined);
 
-export function SocketProvider({ children }: { children: ReactNode }) {
-  const { token } = useAuth();
-  const [socket, setSocket] = useState<Socket | null>(null);
+export function RealtimeProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [connected, setConnected] = useState(false);
+  const [channels, setChannels] = useState<RealtimeChannel[]>([]);
 
   useEffect(() => {
-    if (!token) {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setConnected(false);
-      }
+    if (!user) {
+      // Disconnect all channels when user logs out
+      channels.forEach(channel => {
+        supabase.removeChannel(channel);
+      });
+      setChannels([]);
+      setConnected(false);
       return;
     }
 
-    const newSocket = io(getSocketUrl(), {
-      auth: { token },
-      transports: ['polling', 'websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      timeout: 20000
-    });
-
-    newSocket.on('connect', () => {
-      console.log('Socket connected');
-      setConnected(true);
-      newSocket.emit('subscribe:cases');
-      newSocket.emit('subscribe:notifications');
-    });
-
-    newSocket.on('disconnect', () => {
-      console.log('Socket disconnected');
-      setConnected(false);
-    });
-
-    newSocket.on('notification', (notification) => {
-      toast.success(notification.title, {
-        description: notification.message,
-        duration: 5000
+    // Subscribe to cases changes
+    const casesChannel = supabase
+      .channel('cases-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'cases',
+        },
+        (payload) => {
+          toast.success(`New ${payload.new.type} case created`);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'cases',
+          filter: 'status=eq.CLOSED',
+        },
+        () => {
+          toast.success('Case closed');
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          setConnected(true);
+        }
       });
-    });
 
-    newSocket.on('case:created', (caseData) => {
-      toast.success(`New ${caseData.type} case created`);
-    });
+    // Subscribe to notifications
+    const notificationsChannel = supabase
+      .channel('notifications-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const notification = payload.new as any;
+          toast.success(`${notification.title}: ${notification.message}`, {
+            duration: 5000
+          });
+        }
+      )
+      .subscribe();
 
-    newSocket.on('case:closed', (caseData) => {
-      toast.success(`Case closed in ${caseData.zone?.name}`);
-    });
-
-    setSocket(newSocket);
+    setChannels([casesChannel, notificationsChannel]);
 
     return () => {
-      newSocket.close();
+      // Cleanup channels on unmount
+      supabase.removeChannel(casesChannel);
+      supabase.removeChannel(notificationsChannel);
+      setChannels([]);
+      setConnected(false);
     };
-  }, [token]);
+  }, [user]);
 
   return (
-    <SocketContext.Provider value={{ socket, connected }}>
+    <RealtimeContext.Provider value={{ connected }}>
       {children}
-    </SocketContext.Provider>
+    </RealtimeContext.Provider>
   );
 }
 
-export function useSocket() {
-  const context = useContext(SocketContext);
+export function useRealtime() {
+  const context = useContext(RealtimeContext);
   if (context === undefined) {
-    throw new Error('useSocket must be used within a SocketProvider');
+    throw new Error('useRealtime must be used within a RealtimeProvider');
   }
   return context;
+}
+
+// Keep useSocket for backward compatibility
+export function useSocket() {
+  const { connected } = useRealtime();
+  return { socket: null, connected };
 }

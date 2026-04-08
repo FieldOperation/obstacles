@@ -17,7 +17,7 @@ router.get(
     query('developerId').optional().isUUID(),
     query('type').optional().isIn(['OBSTACLE', 'DAMAGE'])
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

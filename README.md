@@ -1,6 +1,6 @@
 # Obstacles Case Management System
 
-A cross-platform case management system for reporting and tracking road obstacles and damages.
+A web-based case management system for reporting and tracking road obstacles and damages, built with React and Supabase.
 
 ## Features
 
@@ -8,17 +8,15 @@ A cross-platform case management system for reporting and tracking road obstacle
 - **Role-Based Access Control**: Admin, Worker, and Others (read-only)
 - **Real-time Features**: Photo uploads, geotagging, GPS capture
 - **Executive Dashboard**: Interactive filters and analytics
-- **Mobile Support**: React Native app with offline capabilities
 - **Notifications**: Real-time alerts for case creation and resolution
+- **Supabase-Powered**: Fully serverless architecture
 
 ## Project Structure
 
 ```
 obstacles/
-├── backend/          # Express API server
-├── frontend/         # React web application
-├── mobile/           # React Native mobile app
-└── shared/           # Shared types and utilities
+├── frontend/         # React web application (Supabase-only)
+└── README.md
 ```
 
 ## Getting Started
@@ -26,54 +24,86 @@ obstacles/
 ### Prerequisites
 
 - Node.js 18+
-- PostgreSQL 14+
+- Supabase account (free tier available)
 - npm or yarn
 
 ### Installation
 
 ```bash
-# Install all dependencies
-npm run install:all
+# Install dependencies
+cd frontend
+npm install
 
 # Set up environment variables
-cp backend/.env.example backend/.env
-# Edit backend/.env with your database credentials
-
-# Run database migrations
-cd backend
-npx prisma migrate dev
-npx prisma generate
-
-# Seed initial data (optional)
-npx prisma db seed
+cp .env.example .env.local
+# Edit .env.local with your Supabase credentials:
+# VITE_SUPABASE_URL=your-supabase-url
+# VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
+
+### Supabase Setup
+
+1. **Create a Supabase project** at [supabase.com](https://supabase.com)
+
+2. **Run database migrations:**
+   - Use Supabase SQL Editor
+   - See `SUPABASE_CONVERSION_GUIDE.md` for schema and RLS policies
+
+3. **Create Storage Buckets:**
+   - `cases` - for case photos
+   - `logos` - for contractor/owner logos
+
+4. **Set up Row Level Security (RLS) policies:**
+   - Critical for security!
+   - See `SUPABASE_CONVERSION_GUIDE.md` for policies
 
 ### Running the Application
 
 ```bash
-# Backend API (port 3001)
-npm run dev:backend
+# Development
+cd frontend
+npm run dev
 
-# Frontend Web App (port 3000)
-npm run dev:frontend
-
-# Mobile App
-npm run dev:mobile
+# Production build
+npm run build
+# Upload dist/ folder to any static hosting (HostGator, Vercel, Netlify, etc.)
 ```
 
 ## Tech Stack
 
-- **Backend**: Node.js, Express, TypeScript, Prisma, PostgreSQL
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS
-- **Mobile**: React Native, TypeScript
-- **Real-time**: Socket.io
-- **Authentication**: JWT
+- **Backend**: Supabase (Database, Auth, Storage, Realtime)
+- **Real-time**: Supabase Realtime
+- **Authentication**: Supabase Auth
+- **File Storage**: Supabase Storage
 
 ## Roles & Permissions
 
 - **Admin**: Full access to all features, user management, master data
 - **Worker**: Create cases, upload photos, close cases
 - **Others**: Read-only access, receives notifications
+
+## Deployment
+
+This is a **static site** - just upload the `frontend/dist/` folder to any hosting:
+
+- ✅ HostGator (shared hosting works!)
+- ✅ Vercel
+- ✅ Netlify
+- ✅ GitHub Pages
+- ✅ Any static file hosting
+
+No server needed! Everything runs through Supabase.
+
+## Conversion Status
+
+⚠️ **This project is being converted to Supabase-only architecture.**
+
+See `SUPABASE_CONVERSION_GUIDE.md` for:
+- What's been completed
+- What still needs to be done
+- Migration steps
+- RLS policy examples
 
 ## License
 

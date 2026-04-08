@@ -1,25 +1,33 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { api } from '../services/api';
+import { Link } from 'react-router-dom';
+import { zonesService, casesService } from '../services/supabaseService';
 import toast from 'react-hot-toast';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, ChevronDown, ChevronUp, FileText, MapPin } from 'lucide-react';
+import { format } from 'date-fns';
+import { Card } from '../components/ui/Card';
+import { Modal } from '../components/ui/Modal';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { EmptyState } from '../components/ui/EmptyState';
+import { Skeleton } from '../components/ui/Skeleton';
 
 export default function Zones() {
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [editingZone, setEditingZone] = useState<any>(null);
   const [name, setName] = useState('');
+  const [expandedZoneId, setExpandedZoneId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  const { data, isLoading } = useQuery('zones', async () => {
-    const response = await api.get('/zones');
-    return response.data.zones;
-  });
+  const { data, isLoading } = useQuery('zones', () => zonesService.getAll().then((r) => r.zones));
+  const { data: linkedCases, isLoading: casesLoading } = useQuery(
+    ['cases', 'zone', expandedZoneId],
+    () => (expandedZoneId ? casesService.getAll({ zoneId: expandedZoneId }, 1, 100) : Promise.resolve({ cases: [], pagination: { page: 1, limit: 100, total: 0, pages: 0 } })),
+    { enabled: !!expandedZoneId }
+  );
 
   const createMutation = useMutation(
-    async (name: string) => {
-      const response = await api.post('/zones', { name });
-      return response.data;
-    },
+    (name: string) => zonesService.create({ name }),
     {
       onSuccess: () => {
         toast.success('Zone created successfully!');
@@ -27,17 +35,11 @@ export default function Zones() {
         setShowModal(false);
         setName('');
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Failed to create zone');
-      }
+      onError: (err: any) => { toast.error(err.message || 'Failed to create zone'); },
     }
   );
-
   const updateMutation = useMutation(
-    async ({ id, name }: { id: string; name: string }) => {
-      const response = await api.put(`/zones/${id}`, { name });
-      return response.data;
-    },
+    ({ id, name }: { id: string; name: string }) => zonesService.update(id, { name }),
     {
       onSuccess: () => {
         toast.success('Zone updated successfully!');
@@ -46,24 +48,18 @@ export default function Zones() {
         setEditingZone(null);
         setName('');
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Failed to update zone');
-      }
+      onError: (err: any) => { toast.error(err.message || 'Failed to update zone'); },
     }
   );
-
   const deleteMutation = useMutation(
-    async (id: string) => {
-      await api.delete(`/zones/${id}`);
-    },
+    (id: string) => zonesService.delete(id),
     {
       onSuccess: () => {
         toast.success('Zone deleted successfully!');
         queryClient.invalidateQueries('zones');
+        setDeleteTarget(null);
       },
-      onError: (error: any) => {
-        toast.error(error.response?.data?.error || 'Failed to delete zone');
-      }
+      onError: (err: any) => { toast.error(err.message || 'Failed to delete zone'); },
     }
   );
 
@@ -75,116 +71,148 @@ export default function Zones() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingZone) {
-      updateMutation.mutate({ id: editingZone.id, name });
-    } else {
-      createMutation.mutate(name);
-    }
+    if (editingZone) updateMutation.mutate({ id: editingZone.id, name });
+    else createMutation.mutate(name);
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="page-title">Zones</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Manage zones</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2" />
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Zones</h1>
-          <p className="text-gray-600 mt-1">Manage zones</p>
+          <h1 className="page-title">Zones</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Manage zones</p>
         </div>
         <button
-          onClick={() => {
-            setEditingZone(null);
-            setName('');
-            setShowModal(true);
-          }}
-          className="btn btn-primary flex items-center"
+          onClick={() => { setEditingZone(null); setName(''); setShowModal(true); }}
+          className="btn btn-primary shrink-0"
         >
           <Plus size={20} className="mr-2" />
           New Zone
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {data?.map((zone: any) => (
-          <div key={zone.id} className="card">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="text-lg font-semibold">{zone.name}</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {zone._count?.roads || 0} roads, {zone._count?.cases || 0} cases
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(zone)}
-                  className="text-primary-600 hover:text-primary-700"
-                >
-                  <Edit size={16} />
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm('Are you sure you want to delete this zone?')) {
-                      deleteMutation.mutate(zone.id);
-                    }
-                  }}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
-            <h2 className="text-2xl font-bold">
-              {editingZone ? 'Edit Zone' : 'Create Zone'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="label">Name *</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  className="input"
-                />
-              </div>
-              <div className="flex gap-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={createMutation.isLoading || updateMutation.isLoading}
-                >
-                  {editingZone ? 'Update' : 'Create'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setEditingZone(null);
-                    setName('');
-                  }}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+      {data?.length ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {data.map((zone: any) => {
+            const isExpanded = expandedZoneId === zone.id;
+            const caseCount = zone._count?.cases ?? 0;
+            const cases = isExpanded ? (linkedCases?.cases || []) : [];
+            const loadingCases = isExpanded && casesLoading;
+            return (
+              <Card key={zone.id}>
+                <div className="flex justify-between items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-gray-100 truncate">{zone.name}</h3>
+                    <button
+                      type="button"
+                      onClick={() => setExpandedZoneId(isExpanded ? null : zone.id)}
+                      className="flex items-center gap-1.5 mt-1 text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    >
+                      {zone._count?.roads ?? 0} roads, {caseCount} cases
+                      {caseCount > 0 && (isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+                    </button>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button type="button" onClick={() => handleEdit(zone)} className="btn btn-ghost p-2 rounded-lg text-primary-600" aria-label="Edit">
+                      <Edit size={18} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget({ id: zone.id, name: zone.name })}
+                      className="btn btn-ghost p-2 rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      aria-label="Delete"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">Linked cases</p>
+                    {loadingCases ? (
+                      <div className="flex items-center justify-center py-6">
+                        <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : cases.length === 0 ? (
+                      <div className="flex flex-col items-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                        <FileText size={24} className="mb-2 opacity-50" />
+                        No cases in this zone
+                      </div>
+                    ) : (
+                      <ul className="space-y-2 max-h-48 overflow-y-auto">
+                        {cases.map((c: any) => (
+                          <li key={c.id}>
+                            <Link
+                              to={`/cases/${c.id}`}
+                              className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm transition-colors"
+                            >
+                              <span className="truncate text-gray-700 dark:text-gray-300">
+                                {c.type} · {(c.roads as any)?.name || '—'} · {(c.developers as any)?.name || '—'} · {c.status}
+                              </span>
+                              <span className="text-gray-400 shrink-0 text-xs">{format(new Date(c.created_at), 'MMM d')}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
+      ) : (
+        <Card>
+          <EmptyState icon={MapPin} title="No zones yet" description="Create a zone to get started." />
+        </Card>
       )}
+
+      <Modal isOpen={showModal} onClose={() => { setShowModal(false); setEditingZone(null); setName(''); }} title={editingZone ? 'Edit Zone' : 'Create Zone'} size="sm">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label">Name *</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="input" />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button type="submit" className="btn btn-primary flex-1" disabled={createMutation.isLoading || updateMutation.isLoading}>
+              {editingZone ? 'Update' : 'Create'}
+            </button>
+            <button type="button" onClick={() => { setShowModal(false); setEditingZone(null); setName(''); }} className="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+        title="Delete zone"
+        message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.name}"?` : ''}
+        confirmLabel="Delete"
+        variant="danger"
+        loading={deleteMutation.isLoading}
+      />
     </div>
   );
 }

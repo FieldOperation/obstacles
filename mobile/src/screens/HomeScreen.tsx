@@ -1,62 +1,71 @@
 import React from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Card, Text, Button, FAB } from 'react-native-paper';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { settingsService, casesService } from '../services/supabaseService';
+import { AppHeader, ActionCard } from '../components';
+import { colors, spacing } from '../theme/tokens';
 
 export default function HomeScreen() {
   const { user, logout } = useAuth();
   const navigation = useNavigation();
 
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => settingsService.get(),
+  });
+
+  const { data: caseData } = useQuery({
+    queryKey: ['cases', 'open-count'],
+    queryFn: async () => {
+      const { cases } = await casesService.getAll({}, 1, 1000);
+      return cases;
+    },
+  });
+
+  const openCount = caseData?.filter((c: any) => c.status === 'OPEN').length ?? 0;
+  const greeting = user?.name ? `Welcome, ${user.name}` : 'Welcome';
+  const subtitle = openCount > 0 ? `${openCount} open case${openCount === 1 ? '' : 's'}` : undefined;
+
+  const logos =
+    settings?.contractorLogoUrl || settings?.ownerLogoUrl
+      ? {
+          contractor: settings.contractorLogoUrl || undefined,
+          owner: settings.ownerLogoUrl || undefined,
+        }
+      : undefined;
+
+  const canCreate = user?.role === 'ADMIN' || user?.role === 'WORKER';
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.header}>
-          <Text variant="headlineMedium" style={styles.greeting}>
-            Welcome, {user?.name}
-          </Text>
-          <Text variant="bodyMedium" style={styles.role}>
-            {user?.role}
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          <Card style={styles.card} onPress={() => navigation.navigate('CasesList' as never)}>
-            <Card.Content>
-              <Text variant="titleLarge">View Cases</Text>
-              <Text variant="bodyMedium" style={styles.cardDescription}>
-                Browse all obstacles and damages
-              </Text>
-            </Card.Content>
-          </Card>
-
-          {(user?.role === 'ADMIN' || user?.role === 'WORKER') && (
-            <Card
-              style={styles.card}
-              onPress={() => navigation.navigate('CreateCase' as never)}
-            >
-              <Card.Content>
-                <Text variant="titleLarge">Create Case</Text>
-                <Text variant="bodyMedium" style={styles.cardDescription}>
-                  Report a new obstacle or damage
-                </Text>
-              </Card.Content>
-            </Card>
-          )}
-
-          <Button mode="outlined" onPress={logout} style={styles.logoutButton}>
-            Logout
-          </Button>
-        </View>
-      </ScrollView>
-
-      {(user?.role === 'ADMIN' || user?.role === 'WORKER') && (
-        <FAB
-          icon="plus"
-          style={styles.fab}
-          onPress={() => navigation.navigate('CreateCase' as never)}
+      <AppHeader
+        title={greeting}
+        subtitle={subtitle}
+        rightAction={{ label: 'Logout', onPress: logout }}
+        logos={logos}
+      />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <ActionCard
+          title="View Cases"
+          subtitle="Browse all obstacles and damages"
+          onPress={() => navigation.navigate('CasesList' as never)}
+          accessibilityLabel="View cases"
         />
-      )}
+        {canCreate && (
+          <ActionCard
+            title="Create Case"
+            subtitle="Report a new obstacle or damage"
+            onPress={() => navigation.navigate('CreateCase' as never)}
+            accessibilityLabel="Create new case"
+          />
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -64,42 +73,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: colors.bg,
   },
-  scrollView: {
+  scroll: {
     flex: 1,
   },
-  header: {
-    padding: 20,
-    backgroundColor: '#0ea5e9',
-  },
-  greeting: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  role: {
-    color: '#e0f2fe',
-    marginTop: 4,
-  },
-  actions: {
-    padding: 16,
-  },
-  card: {
-    marginBottom: 16,
-    elevation: 2,
-  },
-  cardDescription: {
-    color: '#64748b',
-    marginTop: 4,
-  },
-  logoutButton: {
-    marginTop: 16,
-  },
-  fab: {
-    position: 'absolute',
-    margin: 16,
-    right: 0,
-    bottom: 0,
-    backgroundColor: '#0ea5e9',
+  scrollContent: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xxl,
   },
 });

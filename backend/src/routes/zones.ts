@@ -61,7 +61,7 @@ router.post(
   '/',
   requireAdmin,
   [body('name').trim().notEmpty()],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -96,7 +96,7 @@ router.put(
   '/:id',
   requireAdmin,
   [body('name').trim().notEmpty()],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: express.Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

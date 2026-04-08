@@ -1,18 +1,23 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { Provider as PaperProvider } from 'react-native-paper';
+import { MD3LightTheme } from 'react-native-paper';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StatusBar } from 'expo-status-bar';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { AuthProvider } from './src/contexts/AuthContext';
-import { SocketProvider } from './src/contexts/SocketContext';
+import { RealtimeProvider } from './src/contexts/RealtimeContext';
+import { ThemeProvider } from './src/contexts/ThemeContext';
 import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import CreateCaseScreen from './src/screens/CreateCaseScreen';
 import CaseDetailScreen from './src/screens/CaseDetailScreen';
 import CasesListScreen from './src/screens/CasesListScreen';
 import { useAuth } from './src/contexts/AuthContext';
+import { colors, radii } from './src/theme/tokens';
 
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -47,6 +52,20 @@ class ErrorBoundary extends React.Component<
 
 const queryClient = new QueryClient();
 
+const paperTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: colors.primary,
+    primaryContainer: '#e0f2fe',
+    secondary: colors.primary,
+    outline: colors.border,
+    surface: colors.surface,
+    background: colors.bg,
+  },
+  roundness: radii.md,
+};
+
 const Stack = createStackNavigator();
 
 function AppNavigator() {
@@ -58,7 +77,15 @@ function AppNavigator() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          cardStyle: { backgroundColor: colors.bg },
+          cardStyleInterpolator: ({ current }) => ({
+            cardStyle: { opacity: current.progress },
+          }),
+        }}
+      >
         {!user ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
@@ -78,15 +105,25 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <PaperProvider>
-          <AuthProvider>
-            <SocketProvider>
-              <StatusBar style="auto" />
-              <AppNavigator />
-            </SocketProvider>
-          </AuthProvider>
-        </PaperProvider>
+        <GestureHandlerRootView style={styles.flex}>
+          <PaperProvider theme={paperTheme}>
+            <ThemeProvider>
+              <AuthProvider>
+                <RealtimeProvider>
+                  <BottomSheetModalProvider>
+                    <StatusBar style="auto" />
+                    <AppNavigator />
+                  </BottomSheetModalProvider>
+                </RealtimeProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </PaperProvider>
+        </GestureHandlerRootView>
       </QueryClientProvider>
     </ErrorBoundary>
   );
 }
+
+const styles = StyleSheet.create({
+  flex: { flex: 1 },
+});

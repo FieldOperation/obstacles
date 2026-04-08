@@ -5,20 +5,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 4000,
     strictPort: true, // Fail if port is in use instead of trying another
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-        secure: false,
-        timeout: 30000,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, res) => {
-            console.log('proxy error', err);
-          });
-        }
-      }
-    }
+    // Proxy removed - using Supabase directly
   }
 })
